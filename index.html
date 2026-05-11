@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rocky Translator — Project Hail Mary</title>
+<style>
+  :root {
+    --bg: #0a0806; --surface: #1a1410;
+    --gold: #d4a843; --gold-bright: #f0c860;
+    --amber: #e8943a; --amber-glow: rgba(232,148,58,0.3);
+    --text: #e8dcc8; --text-dim: #8a7e6e;
+    --bubble-size: 50px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:var(--bg);color:var(--text);
+    font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;overflow-x:hidden;
+  }
+  body::before{
+    content:'';position:fixed;top:-50%;left:-50%;width:200%;height:200%;
+    background:radial-gradient(ellipse at 50% 40%,rgba(212,168,67,0.06) 0%,transparent 60%),
+               radial-gradient(ellipse at 30% 60%,rgba(232,148,58,0.04) 0%,transparent 50%);
+    pointer-events:none;z-index:0;
+  }
+  header{position:relative;z-index:1;text-align:center;padding:2.5rem 1rem 1.5rem;}
+  .title-block{display:flex;align-items:center;justify-content:center;gap:0.75rem;margin-bottom:0.25rem;}
+  h1{font-size:2.8rem;font-weight:800;letter-spacing:-0.02em;background:linear-gradient(135deg,var(--gold-bright) 0%,var(--amber) 50%,var(--gold) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  .subtitle{color:var(--text-dim);font-size:0.9rem;font-style:italic;max-width:520px;margin:0 auto;line-height:1.5;}
+  .rocky-emoji{font-size:3rem;animation:float 3s ease-in-out infinite;filter:drop-shadow(0 0 12px var(--amber-glow));}
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+  main{position:relative;z-index:1;width:100%;max-width:720px;padding:0 1.5rem;}
+
+  .input-card{background:var(--surface);border:1px solid rgba(212,168,67,0.2);border-radius:16px;padding:1.5rem;margin-bottom:1.25rem;box-shadow:0 4px 24px rgba(0,0,0,0.4);}
+  textarea{width:100%;height:80px;background:rgba(0,0,0,0.3);border:1px solid rgba(212,168,67,0.25);border-radius:10px;color:var(--text);font-size:1.1rem;padding:1rem;resize:vertical;font-family:inherit;line-height:1.5;transition:border-color 0.2s;}
+  textarea:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,168,67,0.1);}
+  textarea::placeholder{color:rgba(232,220,200,0.25);}
+  .controls-row{display:flex;align-items:center;gap:0.75rem;margin-top:1rem;flex-wrap:wrap;}
+  button{background:linear-gradient(135deg,var(--amber) 0%,#c77820 100%);color:#0a0806;border:none;border-radius:10px;padding:0.65rem 1.5rem;font-size:0.95rem;font-weight:700;cursor:pointer;transition:all 0.2s;letter-spacing:0.01em;display:flex;align-items:center;gap:0.5rem;font-family:inherit;}
+  button:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(232,148,58,0.4);}
+  button:active{transform:translateY(0);}
+  button.secondary{background:rgba(212,168,67,0.12);color:var(--gold);border:1px solid rgba(212,168,67,0.3);}
+  button.secondary:hover{background:rgba(212,168,67,0.2);box-shadow:0 4px 12px rgba(212,168,67,0.2);}
+  button:disabled{opacity:0.4;cursor:not-allowed;transform:none;box-shadow:none;}
+  .speed-group{display:flex;align-items:center;gap:0.5rem;margin-left:auto;}
+  .speed-group label{color:var(--text-dim);font-size:0.85rem;}
+  input[type="range"]{-webkit-appearance:none;width:100px;height:6px;background:rgba(212,168,67,0.2);border-radius:3px;}
+  input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;background:var(--gold);border-radius:50%;cursor:pointer;box-shadow:0 0 8px rgba(212,168,67,0.4);}
+  .speed-value{color:var(--gold);font-weight:700;font-size:0.85rem;min-width:2.5rem;}
+
+  .viz-card{background:var(--surface);border:1px solid rgba(212,168,67,0.2);border-radius:16px;padding:1.5rem 1rem;margin-bottom:1.25rem;box-shadow:0 4px 24px rgba(0,0,0,0.4);min-height:120px;position:relative;overflow:hidden;}
+  .viz-card::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,rgba(212,168,67,0.03) 0%,transparent 70%);pointer-events:none;}
+  #note-display{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center;min-height:70px;position:relative;z-index:1;}
+  .chord-bubble{width:var(--bubble-size);height:var(--bubble-size);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.8rem;transition:all 0.12s ease;background:rgba(212,168,67,0.08);border:2px solid rgba(212,168,67,0.15);color:var(--text-dim);}
+  .chord-bubble.active{background:var(--amber);border-color:var(--gold-bright);color:#0a0806;transform:scale(1.3);box-shadow:0 0 28px var(--amber-glow);z-index:2;}
+  .chord-bubble.played{background:rgba(212,168,67,0.2);border-color:rgba(212,168,67,0.35);color:var(--gold);}
+  .chord-bubble.rest{background:transparent;border-color:transparent;color:var(--text-dim);font-size:1rem;}
+  .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:70px;color:var(--text-dim);gap:0.5rem;position:relative;z-index:1;}
+  .empty-state .icon{font-size:2.5rem;opacity:0.3;}
+
+  .stats-bar{display:flex;gap:1.5rem;justify-content:center;color:var(--text-dim);font-size:0.8rem;}
+  .stats-bar span{display:flex;align-items:center;gap:0.3rem;}
+  .stat-val{color:var(--gold);font-weight:600;}
+
+  .quote-card{background:var(--surface);border:1px solid rgba(212,168,67,0.15);border-radius:12px;padding:1rem 1.25rem;margin-top:1rem;}
+  .quote-card h3{color:var(--gold);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.5rem;}
+  .quote-buttons{display:flex;flex-wrap:wrap;gap:0.5rem;}
+  .quote-btn{background:rgba(212,168,67,0.08);border:1px solid rgba(212,168,67,0.2);color:var(--text-dim);padding:0.4rem 0.8rem;border-radius:8px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;font-family:inherit;}
+  .quote-btn:hover{background:rgba(212,168,67,0.18);color:var(--gold);border-color:var(--gold);}
+
+  footer{position:relative;z-index:1;text-align:center;padding:2rem 1rem;color:var(--text-dim);font-size:0.8rem;opacity:0.6;line-height:1.6;}
+  .toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%) translateY(100px);background:var(--surface);border:1px solid var(--gold);color:var(--gold);padding:0.75rem 1.5rem;border-radius:10px;font-weight:600;z-index:100;transition:transform 0.3s ease;box-shadow:0 8px 32px rgba(0,0,0,0.5);}
+  .toast.show{transform:translateX(-50%) translateY(0);}
+
+  @media(max-width:600px){
+    h1{font-size:2rem}.rocky-emoji{font-size:2.2rem}
+    :root{--bubble-size:38px}.controls-row{justify-content:center}.speed-group{margin-left:0}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title-block">
+    <span class="rocky-emoji">🪨</span>
+    <h1>Rocky Translator</h1>
+    <span class="rocky-emoji">🎵</span>
+  </div>
+  <p class="subtitle">Rocky is an Eridian. He speaks in musical chords — organic, haunting, and beautiful.<br>Type anything and hear him sing.</p>
+</header>
+
+<main>
+  <div class="input-card">
+    <textarea id="input-text" placeholder="Type something and Rocky will sing it..." autofocus>Hello, my name is Ryland Grace. I come in peace!</textarea>
+    <div class="controls-row">
+      <button id="btn-play" onclick="playRocky()">
+        <span>▶</span> Hear Rocky
+      </button>
+      <button id="btn-stop" class="secondary" onclick="stopPlayback()" disabled>
+        <span>■</span> Stop
+      </button>
+      <div class="speed-group">
+        <label>Speed</label>
+        <input type="range" id="speed-slider" min="0.5" max="2.5" step="0.1" value="1.0">
+        <span class="speed-value" id="speed-label">1×</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="viz-card">
+    <div id="note-display">
+      <div class="empty-state"><span class="icon">🎼</span><span>Type and press "Hear Rocky"</span></div>
+    </div>
+  </div>
+
+  <div class="stats-bar">
+    <span>Words: <span class="stat-val" id="stat-notes">0</span></span>
+    <span>Duration: <span class="stat-val" id="stat-duration">—</span></span>
+    <span>Range: <span class="stat-val" id="stat-range">—</span></span>
+  </div>
+
+  <div class="quote-card">
+    <h3>🎬 Famous Rocky lines</h3>
+    <div class="quote-buttons">
+      <button class="quote-btn" onclick="tryQuote('Happy happy happy!')">Happy happy happy!</button>
+      <button class="quote-btn" onclick="tryQuote('You sleep. I watch.')">You sleep. I watch.</button>
+      <button class="quote-btn" onclick="tryQuote('Fist my bump!')">Fist my bump!</button>
+      <button class="quote-btn" onclick="tryQuote('Amaze! Amaze! Amaze!')">Amaze! Amaze!</button>
+      <button class="quote-btn" onclick="tryQuote('I am scary space monster. You are leaky space blob.')">Scary space monster</button>
+      <button class="quote-btn" onclick="tryQuote('You are my friend. I protect you.')">I protect you</button>
+      <button class="quote-btn" onclick="tryQuote('The stars are beautiful from here. I am happy to not be alone.')">Not alone</button>
+    </div>
+  </div>
+</main>
+
+<footer>
+  Based on <em>Project Hail Mary</em> by Andy Weir · Sound design inspired by Aadahl &amp; Van der Ryn 🎵
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  ROCKY TRANSLATOR — Eridian Musical Speech
+//
+//  Rocky's language uses organic musical tones:
+//  • Tonal chords (flute/reed base)
+//  • Chirps & clicks (bird call textures)
+//  • Frequency sweeps (whale song glides)
+//  • Breath underlay (natural flute air)
+//  • Emotional pitch modulation
+// ═══════════════════════════════════════════════════════
+
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null, isPlaying = false, playbackTimeout = null;
+
+const SCALE = [
+  { n:'C', f:261.63, intervals:[0,4,7], ext:[0,4,7,11] },
+  { n:'D', f:293.66, intervals:[0,3,7], ext:[0,3,7,10] },
+  { n:'E', f:329.63, intervals:[0,3,7], ext:[0,3,7,10] },
+  { n:'F', f:349.23, intervals:[0,4,7], ext:[0,4,7,11] },
+  { n:'G', f:392.00, intervals:[0,4,7], ext:[0,4,7,10] },
+  { n:'A', f:440.00, intervals:[0,3,7], ext:[0,3,7,10] },
+  { n:'B', f:493.88, intervals:[0,3,6], ext:[0,3,6,10] },
+  { n:'C', f:523.25, intervals:[0,4,7], ext:[0,4,7,11] },
+  { n:'D', f:587.33, intervals:[0,3,7], ext:[0,3,7,10] },
+  { n:'E', f:659.25, intervals:[0,3,7], ext:[0,3,7,10] },
+  { n:'F', f:698.46, intervals:[0,4,7], ext:[0,4,7,11] },
+  { n:'G', f:783.99, intervals:[0,4,7], ext:[0,4,7,10] },
+  { n:'A', f:880.00, intervals:[0,3,7], ext:[0,3,7,10] },
+  { n:'B', f:987.77, intervals:[0,3,6], ext:[0,3,6,10] },
+];
+
+function wordToChord(word, prevIdx) {
+  let hash = 0;
+  for (let i = 0; i < word.length; i++) { hash = ((hash << 5) - hash) + word.charCodeAt(i); hash |= 0; }
+  let idx = Math.abs(hash) % SCALE.length;
+  if (prevIdx !== null && idx === prevIdx) idx = (idx + 1 + (Math.abs(hash >> 3) % (SCALE.length - 1))) % SCALE.length;
+
+  const chord = { ...SCALE[idx], scaleIdx: idx };
+  const vowels = (word.match(/[aeiou]/gi) || []).length;
+  const hasExclaim = word.includes('!'), hasQuestion = word.includes('?');
+  const isHappy = /happy|amaze|good|love|friend|beautiful|wonderful|yes|thank|protect|stars/i.test(word);
+  const isSad = /sad|bad|scary|alone|sorry|no|cold|dark|die/i.test(word);
+  const isQuestion = /what|where|when|why|how|who|question/i.test(word);
+
+  if (isHappy || word.length > 6) chord.intervals = chord.ext;       // rich extended
+  else if (isSad) chord.intervals = [0,3,6];                          // diminished
+  else if (isQuestion || hasQuestion) chord.intervals = [0,5,7];      // sus4 — wondering
+  else if (hasExclaim) chord.intervals = [0,7,12];                    // power
+  else if (vowels >= 3) chord.intervals = [0,4,7,14];                // add9 — open
+  else chord.intervals = chord.intervals || [0,4,7];
+
+  // Emotional pitch (agitated → up, grave → down)
+  if (isHappy || hasExclaim) chord.pitchShift = 2 + Math.random() * 3;
+  else if (isSad) chord.pitchShift = -2 - Math.random() * 2;
+  else chord.pitchShift = (Math.random() - 0.5) * 1.5;
+
+  chord.emphasis = hasExclaim ? 1.4 : isHappy ? 1.2 : isSad ? 1.15 : 1.0;
+  return chord;
+}
+
+function parseText(text) {
+  const words = text.match(/[\w']+[!?.,;:'"]*|[!?.,;:'"]+|[\n]+/g) || [];
+  const chords = []; let prevIdx = null;
+  for (const word of words) {
+    if (/^\s*$/.test(word) || word === '\n') {
+      chords.push({ type:'rest', word:word==='\n'?'¶':' ', duration:word==='\n'?0.5:0.22 });
+      continue;
+    }
+    const chord = wordToChord(word.replace(/[!?.,;:'"]/g, ''), prevIdx);
+    prevIdx = chord.scaleIdx;
+    const baseDur = 0.2;
+    const lenFactor = Math.min(word.length * 0.04, 0.18);
+    chords.push({ type:'chord', word, freq:chord.f, intervals:chord.intervals, noteName:chord.n, pitchShift:chord.pitchShift, duration:(baseDur + lenFactor) * chord.emphasis });
+  }
+  return chords;
+}
+
+function displayChords(chords) {
+  const container = document.getElementById('note-display');
+  container.innerHTML = '';
+  if (!chords.length) {
+    container.innerHTML = '<div class="empty-state"><span class="icon">🎼</span><span>No words to sing</span></div>';
+    document.getElementById('stat-notes').textContent = '0';
+    document.getElementById('stat-duration').textContent = '—';
+    document.getElementById('stat-range').textContent = '—';
+    return;
+  }
+  const playable = chords.filter(c=>c.type==='chord');
+  const totalDur = chords.reduce((s,c)=>s+c.duration,0);
+  const freqs = playable.map(c=>c.freq * Math.pow(2, c.pitchShift/12));
+  const minF = freqs.length?Math.min(...freqs):0, maxF = freqs.length?Math.max(...freqs):0;
+  document.getElementById('stat-notes').textContent = playable.length;
+  document.getElementById('stat-duration').textContent = `${totalDur.toFixed(1)}s`;
+  document.getElementById('stat-range').textContent = playable.length?`${Math.round(minF)}–${Math.round(maxF)} Hz`:'—';
+  chords.forEach((c,i)=>{
+    const el=document.createElement('div');
+    el.className='chord-bubble'; el.id=`chord-${i}`;
+    if(c.type==='rest'){el.classList.add('rest');el.textContent=c.word;}
+    else{el.textContent=c.word;el.title=`${c.noteName} · ${c.freq.toFixed(0)}Hz · shift:${c.pitchShift>0?'+':''}${c.pitchShift.toFixed(1)}st`;}
+    container.appendChild(el);
+  });
+}
+
+function getAudioContext() {
+  if(!audioCtx) { audioCtx=new AudioCtx(); console.log('🪨 AudioContext created'); }
+  if(audioCtx.state==='suspended') { audioCtx.resume(); console.log('🎵 AudioContext resumed'); }
+  console.log('🔊 AudioContext state:', audioCtx.state);
+  return audioCtx;
+}
+
+// Layered Eridian sound event — 4 organic layers per word
+function playEridianWord(chord, startTime, ctx) {
+  const shiftedFreq = chord.freq * Math.pow(2, chord.pitchShift / 12);
+  const dur = chord.duration;
+  const masterGain = ctx.createGain();
+  masterGain.connect(ctx.destination);
+  const atk=0.015, dec=dur*0.35, sus=0.55, rel=Math.min(dur*0.3,0.12);
+  masterGain.gain.setValueAtTime(0, startTime);
+  masterGain.gain.linearRampToValueAtTime(0.6, startTime+atk);
+  masterGain.gain.linearRampToValueAtTime(sus*0.6, startTime+atk+dec);
+  masterGain.gain.setValueAtTime(sus*0.6, startTime+dur-rel);
+  masterGain.gain.linearRampToValueAtTime(0, startTime+dur);
+
+  // Layer 1: Musical chord (flute-like sine waves)
+  chord.intervals.forEach((st, idx) => {
+    const osc = ctx.createOscillator();
+    const ng = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(shiftedFreq * Math.pow(2, st/12), startTime);
+    osc.detune.setValueAtTime(idx===0?0:(Math.random()*3-1.5), startTime);
+    const vol = 0.45 / chord.intervals.length;
+    ng.gain.setValueAtTime(0, startTime);
+    ng.gain.linearRampToValueAtTime(vol, startTime+atk);
+    ng.gain.linearRampToValueAtTime(vol*0.65, startTime+atk+dec);
+    ng.gain.linearRampToValueAtTime(0, startTime+dur);
+    osc.connect(ng); ng.connect(masterGain);
+    osc.start(startTime); osc.stop(startTime+dur+0.05);
+  });
+
+  // Layer 2: Organic chirp/click (bird call — whippoorwill texture)
+  {
+    const bufSize = ctx.sampleRate * 0.03;
+    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) data[i] = (Math.random()*2-1) * Math.exp(-i/(bufSize*0.15)) * 0.25;
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const flt = ctx.createBiquadFilter();
+    flt.type = 'bandpass'; flt.frequency.setValueAtTime(2000+Math.random()*3000, startTime); flt.Q.setValueAtTime(8, startTime);
+    const gn = ctx.createGain();
+    gn.gain.setValueAtTime(0.08, startTime);
+    gn.gain.exponentialRampToValueAtTime(0.001, startTime+0.03);
+    src.connect(flt); flt.connect(gn); gn.connect(masterGain);
+    src.start(startTime); src.stop(startTime+0.03);
+  }
+
+  // Layer 3: Whale-like frequency sweep (humpback whale glide)
+  {
+    const sweepDur = Math.min(dur*0.4, 0.12);
+    const osc = ctx.createOscillator(); osc.type = 'sine';
+    osc.frequency.setValueAtTime(shiftedFreq*0.7, startTime);
+    osc.frequency.linearRampToValueAtTime(shiftedFreq, startTime+sweepDur);
+    const gn = ctx.createGain();
+    gn.gain.setValueAtTime(0.06, startTime);
+    gn.gain.linearRampToValueAtTime(0.03, startTime+sweepDur);
+    gn.gain.linearRampToValueAtTime(0, startTime+sweepDur+0.02);
+    osc.connect(gn); gn.connect(masterGain);
+    osc.start(startTime); osc.stop(startTime+sweepDur+0.02);
+  }
+
+  // Layer 4: Breath texture — filtered sawtooth (flute air)
+  {
+    const osc = ctx.createOscillator(); osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(shiftedFreq, startTime);
+    const flt = ctx.createBiquadFilter();
+    flt.type = 'lowpass'; flt.frequency.setValueAtTime(800, startTime); flt.Q.setValueAtTime(0.5, startTime);
+    const gn = ctx.createGain();
+    gn.gain.setValueAtTime(0, startTime);
+    gn.gain.linearRampToValueAtTime(0.025, startTime+0.03);
+    gn.gain.linearRampToValueAtTime(0.015, startTime+dur*0.5);
+    gn.gain.linearRampToValueAtTime(0, startTime+dur);
+    osc.connect(flt); flt.connect(gn); gn.connect(masterGain);
+    osc.start(startTime); osc.stop(startTime+dur+0.02);
+  }
+}
+
+async function playRockySequence(chords, speedMultiplier, ctx) {
+  for (let i = 0; i < chords.length; i++) {
+    if (!isPlaying) break;
+    const c = chords[i];
+    const bubble = document.getElementById(`chord-${i}`);
+    if (bubble) {
+      document.querySelectorAll('.chord-bubble.active').forEach(b=>b.classList.remove('active'));
+      bubble.classList.add('active');
+      if (c.type==='chord') bubble.classList.add('played');
+    }
+    if (c.type==='chord') playEridianWord(c, ctx.currentTime, ctx);
+    await new Promise(r=>{playbackTimeout=setTimeout(r, c.duration*1000/speedMultiplier)});
+  }
+  setTimeout(()=>{document.querySelectorAll('.chord-bubble.active').forEach(b=>b.classList.remove('active'));},100);
+}
+
+async function playRocky() {
+  const text = document.getElementById('input-text').value.trim();
+  if (!text) { showToast('Type something first! 🎵'); return; }
+  stopPlayback();
+
+  // Must create/resume AudioContext DIRECTLY in the click handler
+  const ctx = getAudioContext();
+
+  const chords = parseText(text);
+  displayChords(chords);
+  if (chords.every(c=>c.type==='rest')) { showToast('No words to sing!'); return; }
+  const speed = parseFloat(document.getElementById('speed-slider').value);
+  isPlaying = true;
+  document.getElementById('btn-play').disabled = true;
+  document.getElementById('btn-stop').disabled = false;
+  await playRockySequence(chords, speed, ctx);
+  isPlaying = false;
+  document.getElementById('btn-play').disabled = false;
+  document.getElementById('btn-stop').disabled = true;
+}
+
+function stopPlayback() {
+  isPlaying = false;
+  if (playbackTimeout) clearTimeout(playbackTimeout);
+  document.getElementById('btn-play').disabled = false;
+  document.getElementById('btn-stop').disabled = true;
+  document.querySelectorAll('.chord-bubble.active').forEach(b=>b.classList.remove('active'));
+}
+
+function tryQuote(text) {
+  document.getElementById('input-text').value = text;
+  displayChords(parseText(text));
+  playRocky();
+}
+
+function showToast(msg) {
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+document.getElementById('input-text').addEventListener('input', ()=>{
+  if(!isPlaying) displayChords(parseText(document.getElementById('input-text').value));
+});
+document.getElementById('speed-slider').addEventListener('input', e=>{
+  document.getElementById('speed-label').textContent=`${parseFloat(e.target.value).toFixed(1)}×`;
+});
+document.addEventListener('keydown', e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key==='Enter'){e.preventDefault();isPlaying?stopPlayback():playRocky();}
+});
+// AudioContext MUST be created inside a user gesture handler.
+// We handle this in playRocky() directly — no pre-warm listener needed.
+// The click on the Play button IS the user gesture.
+
+displayChords(parseText(document.getElementById('input-text').value));
+</script>
+</body>
+</html>
